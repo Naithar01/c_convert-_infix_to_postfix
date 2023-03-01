@@ -8,6 +8,8 @@ typedef struct Stack
 {
     int top;
     char postfix[MaxStr];
+    int calculator_top;
+    int calculator_postfix[MaxStr];
 } Stack;
 
 int isEmpty(Stack *s)
@@ -37,6 +39,35 @@ char pop(Stack *s)
     }
 
     return s->postfix[(s->top)--];
+}
+
+int isEmptyCalculatorPostfix(Stack *s)
+{
+    if (s->calculator_top == -1)
+    {
+        return 1;
+    }
+    return 0;
+}
+
+void pushCalculatorPostfix(Stack *s, int d)
+{
+    if (s->calculator_top == MaxStr - 1)
+    {
+        exit(1);
+    }
+
+    s->calculator_postfix[++(s->calculator_top)] = d;
+}
+
+int popCalculatorPostfix(Stack *s)
+{
+    if (isEmptyCalculatorPostfix(s))
+    {
+        exit(1);
+    }
+
+    return s->calculator_postfix[(s->calculator_top)--];
 }
 
 // 매개변수로 받은 c가 연산자인지 아닌지 확인해주는 함수
@@ -69,15 +100,13 @@ int topOperator(char c)
 // 중위 표기법을 후위 표기법으로 바꿔줄 함수
 void infixToPostfix(char infix[], char postfix[])
 {
-    int i, j;
-    char c;
-
+    int j = 0;
     Stack s;
     s.top = -1;
 
-    for (i = 0, j = 0; infix[i] != '\0'; i++) //
+    for (int i = 0; infix[i] != '\0'; i++) //
     {
-        c = infix[i];
+        char c = infix[i];
 
         // 정수인지 확인
         if (c >= '0' && c <= '9')
@@ -88,9 +117,8 @@ void infixToPostfix(char infix[], char postfix[])
         else if (checkOperator(c))
         {
             // 연산자도 다 똑같은 연산자가 아님, 사칙연산에도 우선순위가 있음
-            // 연산자 우선순위에 따른 순서를 변경하는 조건문
-            // 현재 infix의 i번째 부분이 연산자인데 스택에 가장 최근에
-            // 추가된 연산자가 현재 연산자보다 작거나 같은지 확인
+            // 현재 '*' 혹은 '/' 가 들어가있고 '+' 혹은 '-' 가 들어왔으면 '*, /' 를 먼저 연산을 해줘야하기에
+            // postfix에 연산자를 바로 삽입(대입)
             while (!isEmpty(&s) && topOperator(c) <= topOperator(s.postfix[s.top]))
             {
                 postfix[j++] = pop(&s);
@@ -124,7 +152,7 @@ void infixToPostfix(char infix[], char postfix[])
             {
                 postfix[j++] = pop(&s);
             }
-            pop(&s); // discard the '('
+            pop(&s); // 여는 괄호 제거 '('
         }
     }
 
@@ -144,6 +172,57 @@ void infixToPostfix(char infix[], char postfix[])
     postfix[j] = '\0';
 }
 
+// 후위 표기법 수식을 계산
+int calculatorOperator(char O, int data1, int data2)
+{
+    switch (O)
+    {
+    case '+':
+        return data1 + data2;
+        break;
+
+    case '-':
+        return data1 - data2;
+        break;
+
+    case '*':
+        return data1 * data2;
+        break;
+
+    case '/':
+        return data1 / data2;
+        break;
+
+    default:
+        break;
+    }
+}
+
+// 후위 표기법으로 바뀐 문자열을 계산해줄 함수
+int calculatorPostfix(char postfix[])
+{
+    Stack s;
+    s.calculator_top = -1;
+
+    for (int i = 0; postfix[i] != '\0'; i++)
+    {
+        char c = postfix[i];
+
+        // 정수인지 확인
+        if (c >= '0' && c <= '9')
+        {
+            pushCalculatorPostfix(&s, c - '0');
+        }
+        else if (checkOperator(c))
+        {
+            pushCalculatorPostfix(&s, calculatorOperator(c, popCalculatorPostfix(&s), popCalculatorPostfix(&s)));
+        }
+    }
+
+    printf("%d", popCalculatorPostfix(&s));
+    return 0;
+}
+
 int main()
 {
     // infix는 중위 표기법을 입력
@@ -154,7 +233,9 @@ int main()
 
     infixToPostfix(infix, postfix);
 
-    printf("%s\n", postfix);
+    printf("...: %s\n", postfix);
+
+    calculatorPostfix(postfix);
 
     return 0;
 }
